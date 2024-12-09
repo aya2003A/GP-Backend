@@ -66,7 +66,7 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = request.headers.get('Authorization')  
         if not token:
-            return jsonify({'Alert': 'Token is missing!'}), 401
+            return f(None, *args, **kwargs)
 
         try:
             blacklisted = blacklist_tokens.find_one({'token': token})
@@ -307,6 +307,10 @@ def generate_unique_id():
 @app.route("/api/test/<string:testname>/<string:disease_name>", methods=['GET'])
 @token_required
 def get_disease_description(current_user, testname, disease_name):
+
+    if not current_user:
+        return jsonify({'Login to continue.'}), 401
+        
     disease = diseases_collection.find_one({'name': disease_name})
 
     if disease:
