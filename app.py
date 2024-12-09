@@ -309,7 +309,7 @@ def generate_unique_id():
 def get_disease_description(current_user, testname, disease_name):
 
     if not current_user:
-        return jsonify({'Login to continue.'}), 401
+        return jsonify({'message':'Login to continue.'}), 401
 
     disease = diseases_collection.find_one({'name': disease_name})
 
