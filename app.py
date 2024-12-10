@@ -1071,7 +1071,6 @@ def create_journal2(current_user):
     return jsonify({'message': 'Journal entry created successfully!'}), 201
 
 # ------------- Edit Journal ---------------------
-
 @app.route("/api/edit_journal", methods=['PUT'])
 @token_required
 def edit_journal(current_user):
@@ -1081,36 +1080,77 @@ def edit_journal(current_user):
         return jsonify({'error': 'id and new_content are required'}), 400
 
     journal_id = data['id']
-    new_title = data.get('new_title') 
+    new_title = data.get('new_title')  # Optional field
     new_content = data['new_content']
-    new_date = datetime.utcnow().strftime('%d-%m-%Y')  
+    current_date = datetime.utcnow().strftime('%d-%m-%Y')  # Format the date as day-month-year
 
     update_fields = {
         'journal.$[journal].entries.$[entry].content': new_content,
-        'journal.$[journal].entries.$[entry].date': new_date
+        'journal.$[journal].entries.$[entry].date': current_date
     }
     if new_title:
         update_fields['journal.$[journal].entries.$[entry].title'] = new_title
 
-    # Perform the update
+    # Perform update operation with array filters
     result = journal_collection.update_one(
         {
-            'email': current_user['email'],
-            'journal.entries._id': journal_id  # Locate the journal entry by its unique ID
+            'email': current_user['email'],  # Match the user by email
+            'journal.entries._id': journal_id  # Locate the specific journal entry
         },
         {
             '$set': update_fields
         },
         array_filters=[
-            {'journal.date': {'$eq': datetime.utcnow().strftime('%d-%m-%Y')}},  # Match journal entry by date
-            {'entry._id': journal_id}  # Match the specific entry by ID
+            {'journal.entries': {'$exists': True}},  # Ensure the journal has entries
+            {'entry._id': journal_id}  # Match the specific entry ID
         ]
     )
 
+    # Check if update was successful
     if result.matched_count == 0:
         return jsonify({'error': 'Journal entry not found or does not match the user'}), 404
 
     return jsonify({'message': 'Journal entry updated successfully with new date!'}), 200
+    
+# @app.route("/api/edit_journal", methods=['PUT'])
+# @token_required
+# def edit_journal(current_user):
+#     data = request.get_json()
+
+#     if 'id' not in data or 'new_content' not in data:
+#         return jsonify({'error': 'id and new_content are required'}), 400
+
+#     journal_id = data['id']
+#     new_title = data.get('new_title') 
+#     new_content = data['new_content']
+#     new_date = datetime.utcnow().strftime('%d-%m-%Y')  
+
+#     update_fields = {
+#         'journal.$[journal].entries.$[entry].content': new_content,
+#         'journal.$[journal].entries.$[entry].date': new_date
+#     }
+#     if new_title:
+#         update_fields['journal.$[journal].entries.$[entry].title'] = new_title
+
+#     # Perform the update
+#     result = journal_collection.update_one(
+#         {
+#             'email': current_user['email'],
+#             'journal.entries._id': journal_id  # Locate the journal entry by its unique ID
+#         },
+#         {
+#             '$set': update_fields
+#         },
+#         array_filters=[
+#             {'journal.date': {'$eq': datetime.utcnow().strftime('%d-%m-%Y')}},  # Match journal entry by date
+#             {'entry._id': journal_id}  # Match the specific entry by ID
+#         ]
+#     )
+
+#     if result.matched_count == 0:
+#         return jsonify({'error': 'Journal entry not found or does not match the user'}), 404
+
+#     return jsonify({'message': 'Journal entry updated successfully with new date!'}), 200
 
 # ------------ Get journals -----------------------
 
